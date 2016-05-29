@@ -15,9 +15,13 @@ LOCAL os_timer_t hello_timer;
 LOCAL scaninfo *pscaninfo;
 
 extern u16 scannum;
+struct scan_config sc;
 
 static void ICACHE_FLASH_ATTR scan_cb(void *arg, STATUS status)
 {
+	LOCAL struct bss_info *bss;
+	u8 buf[32];
+
 	WRITE_PERI_REG(RTC_GPIO_OUT, (READ_PERI_REG(RTC_GPIO_OUT) & (uint32)0xfffffffe) | (uint32)(0));
 
 	if (pscaninfo == NULL) {
@@ -30,14 +34,29 @@ static void ICACHE_FLASH_ATTR scan_cb(void *arg, STATUS status)
 	else
 		pscaninfo->totalpage = scannum / 8 + 1;
 
-	os_printf("pagenum %d/%d", pscaninfo->pagenum, pscaninfo->totalpage);
+	if (!arg) {
+		os_printf("! scan was not successful\r\n");
+		WRITE_PERI_REG(RTC_GPIO_OUT, (READ_PERI_REG(RTC_GPIO_OUT) & (uint32)0xfffffffe) | (uint32)(1));
+	} else {
+		os_printf("pagenum %d/%d\r\n", pscaninfo->pagenum, pscaninfo->totalpage);
+		while (bss = STAILQ_FIRST(pscaninfo->pbss)) {
+			os_memset(buf, 0, sizeof(buf));
+			os_printf("BSSID: %x:%x:%x:%x:%x:%x\r\n", bss->bssid[0],
+					bss->bssid[1], bss->bssid[2], bss->bssid[3],
+					bss->bssid[4], bss->bssid[5]);
+			os_printf("ESSID: %s\r\n", bss->ssid);
+			os_printf("rssi %d\r\n", bss->rssi);
+			os_printf("Channel %d\r\n", bss->channel);
+			STAILQ_REMOVE_HEAD(pscaninfo->pbss, next);
+		}
+	}
+	wifi_station_scan(&sc, scan_cb);
 }
 
 //Hello world task
 static void ICACHE_FLASH_ATTR
 task_hello(os_event_t *events)
 {
-	struct scan_config sc;
 	sc.ssid = NULL;
 	sc.bssid = NULL;
 	sc.channel = 0;
@@ -58,15 +77,13 @@ task_hello(os_event_t *events)
 
 static void ICACHE_FLASH_ATTR timer_hello(void *arg)
 {
-	static int wat = 0;
-	os_printf("Hello Timer!\r\n");
-	os_printf("gpio %x\r\n", gpio_input_get());
+	static int blink = 0;
 
-	if (wat) {
-		wat = 0;
+	if (blink) {
+		blink = 0;
 		gpio_output_set(0, BIT2, BIT2, 0);
 	} else {
-		wat = 1;
+		blink = 1;
 		gpio_output_set(BIT2, 0, BIT2, 0);
 	}
 }
