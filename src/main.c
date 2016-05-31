@@ -41,12 +41,10 @@ static void ICACHE_FLASH_ATTR scan_cb(void *arg, STATUS status)
 		os_printf("pagenum %d/%d\r\n", pscaninfo->pagenum, pscaninfo->totalpage);
 		while (bss = STAILQ_FIRST(pscaninfo->pbss)) {
 			os_memset(buf, 0, sizeof(buf));
-			os_printf("BSSID: %x:%x:%x:%x:%x:%x\r\n", bss->bssid[0],
-					bss->bssid[1], bss->bssid[2], bss->bssid[3],
-					bss->bssid[4], bss->bssid[5]);
-			os_printf("ESSID: %s\r\n", bss->ssid);
-			os_printf("rssi %d\r\n", bss->rssi);
-			os_printf("Channel %d\r\n", bss->channel);
+			os_printf("%30s  %x:%x:%x:%x:%x:%x  %d  %d\r\n", bss->ssid,
+					bss->bssid[0], bss->bssid[1], bss->bssid[2],
+					bss->bssid[3], bss->bssid[4], bss->bssid[5],
+					bss->rssi, bss->channel);
 			STAILQ_REMOVE_HEAD(pscaninfo->pbss, next);
 		}
 	}
