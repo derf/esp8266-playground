@@ -40,7 +40,6 @@ static void ICACHE_FLASH_ATTR scan_cb(void *arg, STATUS status)
 
 	if (!arg) {
 		os_printf("! scan was not successful\r\n");
-		WRITE_PERI_REG(RTC_GPIO_OUT, (READ_PERI_REG(RTC_GPIO_OUT) & (uint32)0xfffffffe) | (uint32)(1));
 	} else {
 		os_printf("pagenum %d/%d\r\n", pscaninfo->pagenum, pscaninfo->totalpage);
 		while ((bss = STAILQ_FIRST(pscaninfo->pbss))) {
@@ -54,6 +53,7 @@ static void ICACHE_FLASH_ATTR scan_cb(void *arg, STATUS status)
 	}
 	wdt_feed();
 	wifi_station_scan(&sc, scan_cb);
+	WRITE_PERI_REG(RTC_GPIO_OUT, (READ_PERI_REG(RTC_GPIO_OUT) & (uint32)0xfffffffe) | (uint32)(1));
 }
 
 //Hello world task
