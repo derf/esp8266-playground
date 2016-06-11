@@ -14,6 +14,10 @@ os_event_t    user_procTaskQueue[user_procTaskQueueLen];
 LOCAL os_timer_t hello_timer;
 LOCAL scaninfo *pscaninfo;
 
+extern void ets_wdt_enable (void);
+extern void ets_wdt_disable (void);
+extern void wdt_feed (void);
+
 extern u16 scannum;
 struct scan_config sc;
 
@@ -39,7 +43,7 @@ static void ICACHE_FLASH_ATTR scan_cb(void *arg, STATUS status)
 		WRITE_PERI_REG(RTC_GPIO_OUT, (READ_PERI_REG(RTC_GPIO_OUT) & (uint32)0xfffffffe) | (uint32)(1));
 	} else {
 		os_printf("pagenum %d/%d\r\n", pscaninfo->pagenum, pscaninfo->totalpage);
-		while (bss = STAILQ_FIRST(pscaninfo->pbss)) {
+		while ((bss = STAILQ_FIRST(pscaninfo->pbss))) {
 			os_memset(buf, 0, sizeof(buf));
 			os_printf("%30s  %02x:%02x:%02x:%02x:%02x:%02x  %d  %d\r\n", bss->ssid,
 					bss->bssid[0], bss->bssid[1], bss->bssid[2],
@@ -48,6 +52,7 @@ static void ICACHE_FLASH_ATTR scan_cb(void *arg, STATUS status)
 			STAILQ_REMOVE_HEAD(pscaninfo->pbss, next);
 		}
 	}
+	wdt_feed();
 	wifi_station_scan(&sc, scan_cb);
 }
 
@@ -99,6 +104,8 @@ user_init()
   os_timer_disarm(&hello_timer);
   os_timer_setfn(&hello_timer, (os_timer_func_t *)timer_hello, (void *)0);
   os_timer_arm(&hello_timer, 1000, 1);
+
+  ets_wdt_enable();
 
   //Set up the hello world task
   system_os_task(task_hello, user_procTaskPrio, user_procTaskQueue, user_procTaskQueueLen);
