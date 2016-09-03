@@ -44,15 +44,14 @@ static void ICACHE_FLASH_ATTR scan_cb(void *arg, STATUS status)
 		os_printf("pagenum %d/%d\r\n", pscaninfo->pagenum, pscaninfo->totalpage);
 		while ((bss = STAILQ_FIRST(pscaninfo->pbss))) {
 			os_memset(buf, 0, sizeof(buf));
-			os_printf("%30s  %02x:%02x:%02x:%02x:%02x:%02x  %d  %d\r\n", bss->ssid,
+			os_printf("AP  %02x:%02x:%02x:%02x:%02x:%02x  %d  %2d  %-30s\r\n",
 					bss->bssid[0], bss->bssid[1], bss->bssid[2],
 					bss->bssid[3], bss->bssid[4], bss->bssid[5],
-					bss->rssi, bss->channel);
+					bss->rssi, bss->channel, bss->ssid);
 			STAILQ_REMOVE_HEAD(pscaninfo->pbss, next);
 		}
 	}
 	wdt_feed();
-	wifi_station_scan(&sc, scan_cb);
 	WRITE_PERI_REG(RTC_GPIO_OUT, (READ_PERI_REG(RTC_GPIO_OUT) & (uint32)0xfffffffe) | (uint32)(1));
 }
 
@@ -71,7 +70,6 @@ task_hello(os_event_t *events)
 
 	wifi_station_set_hostname( "noderf" );
 	wifi_set_opmode_current( STATION_MODE );
-	wifi_station_scan(&sc, scan_cb);
 	WRITE_PERI_REG(RTC_GPIO_OUT, (READ_PERI_REG(RTC_GPIO_OUT) & (uint32)0xfffffffe) | (uint32)(1));
 
 	//print text to the serial output
@@ -81,6 +79,7 @@ task_hello(os_event_t *events)
 static void ICACHE_FLASH_ATTR timer_hello(void *arg)
 {
 	static int blink = 0;
+	static int do_scan = 0;
 
 	if (blink) {
 		blink = 0;
@@ -88,6 +87,10 @@ static void ICACHE_FLASH_ATTR timer_hello(void *arg)
 	} else {
 		blink = 1;
 		gpio_output_set(BIT2, 0, BIT2, 0);
+	}
+	if (do_scan++ == 10) {
+		wifi_station_scan(&sc, scan_cb);
+		do_scan = 0;
 	}
 }
 
