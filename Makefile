@@ -1,6 +1,5 @@
 TOOLCHAIN_BASE = /home/derf/var/projects/esp8266/toolchain/xtensa-lx106-elf/bin
 SDK_BASE = /home/derf/var/projects/esp8266/toolchain/xtensa-lx106-elf/xtensa-lx106-elf/sysroot/usr
-ESPTOOLPY = /home/derf/var/projects/esp8266/esptool/esptool.py
 ESPTOOL = esptool
 PORT = /dev/ttyUSB0
 
@@ -37,17 +36,16 @@ build/main.ar: ${OBJECTS}
 
 
 build/0x00000.bin: build/main.elf
-	${ESPTOOL} -eo $< -bo $@  -bs .text -bs .data -bs .rodata -bc -ec
+	${ESPTOOL} --chip esp8266 elf2image -o build/ $<
 
-build/0x40000.bin: build/main.elf
-	${ESPTOOL} -eo $< -es .irom0.text $@ -ec
+build/0x40000.bin: build/0x00000.bin
 
 build/%.o: src/%.c ${HEADERS}
 
 program: flash
 
 flash: build/0x00000.bin build/0x40000.bin
-	${ESPTOOLPY} --port ${PORT} write_flash 0x00000 build/0x00000.bin 0x40000 build/0x40000.bin
+	${ESPTOOL} write_flash 0x00000 build/0x00000.bin 0x40000 build/0x40000.bin
 
 clean:
 	rm -rf build
